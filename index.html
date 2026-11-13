@@ -11,7 +11,7 @@
   Il faut alors recalculer le SHA-256 (base64) du contenu du bloc, avec des fins de ligne LF,
   et remplacer la valeur correspondante ci-dessous, sinon le navigateur bloquera le bloc.
 -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-hpDmCQvfjmtT7IrSo68HRFCfmlqBxfF6H9NuWeLJC1E=' https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js; style-src 'sha256-c/yqqvNeDJnDuYIEMnlnJPIgYhCUszp1Dnf2c7ro93c='; img-src 'self' data: blob:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-qjg2MtQVqWBBCVZ2VTkpAoN8abZ0mM1A148huu2Q4M0=' https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js; style-src 'sha256-c/yqqvNeDJnDuYIEMnlnJPIgYhCUszp1Dnf2c7ro93c='; img-src 'self' data: blob:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <title>Bosquet Royale 3D</title>
 <style>
   html,body{margin:0;height:100%;overflow:hidden;background:#9fd8ff;font-family:"Trebuchet MS","Segoe UI",Verdana,sans-serif;user-select:none;color:#2d2a4a}
@@ -1019,7 +1019,7 @@ const Render = (() => {
     Game.burst(x, y, '#fff3a0', 3, 90, 5, h);
   }
   function project(x, y, h) { v3.set(x * K, h, y * K).project(camera); return { x: (v3.x + 1) / 2 * window.innerWidth, y: (1 - v3.y) / 2 * window.innerHeight, vis: v3.z < 1 && v3.z > -1 }; }
-  function look(dx, dy) { pitch = clamp(pitch + dy, .06, 1.15); }
+  function look(dx, dy) { pitch = clamp(pitch + dy, .18, .42); } // plage courte : le personnage reste toujours à l'écran
 
   /* ---------- image ---------- */
   function frame(dt, t) {
@@ -1071,9 +1071,10 @@ const Render = (() => {
       for (let d = 1; d <= 8.5; d += .5) { const px = f.x - c * d / K, py = f.y - s * d / K; if (Physics.solidAt(px, py) || structures.some(st => st.kind === 'wall' && Physics.inRect(st, px, py))) { want = Math.max(1.6, d - .7); break; } }
       camDist += (want - camDist) * Math.min(1, dt * (want < camDist ? 18 : 5));
       const p = pitch + fx.recoil * .035, hd = camDist * Math.cos(p), sh = fx.shake;
-      const tx = f.x * K, ty = fel + 2.5, tz = f.y * K;
+      const tx = f.x * K, ty = fel + 3.2, tz = f.y * K;
       camera.position.set(tx - c * hd + rand(-sh, sh), ty + camDist * Math.sin(p) + rand(-sh, sh) * .5, tz - s * hd + rand(-sh, sh));
-      camera.lookAt(tx + c * 6, ty - .2 + fx.recoil * .25, tz + s * 6);
+      // la caméra vise toujours le point de mire (loin devant, à hauteur d'arme) : le viseur reste donc fixe au centre de l'écran
+      camera.lookAt(tx + c * 26, fel + 1.45 + fx.recoil * .5, tz + s * 26);
     }
     Audio.listener.x = fxp; Audio.listener.y = fyp;
     const cpx = camera.position.x / K, cpy = camera.position.z / K;
@@ -1205,7 +1206,7 @@ const UI = (() => {
     if (p.high) txt('EN HAUTEUR', vw / 2, sy - 52, 14, '#ffe14d', 'center');
     if (!locked) txt('Clique pour capturer la souris', vw / 2, vh / 2 + 70, 15, '#fff', 'center');
     // viseur (là où pointe réellement le tir), marqueur de touche, progression du soin
-    const q = Render.project(p.x + Math.cos(p.ang) * 520, p.y + Math.sin(p.ang) * 520, p.elev + 1.45), cx = q.x, cy = clamp(q.y, 40, vh - 120), sp = 5 + fx.recoil * 9;
+    const cx = vw / 2, cy = vh / 2, sp = 5 + fx.recoil * 9; // viseur fixe au centre : la caméra est orientée vers le point de mire
     ctx.lineCap = 'round';
     for (const [c, w] of [[OUT, 5], ['#fff', 2.5]]) { ctx.strokeStyle = c; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(cx - sp - 9, cy); ctx.lineTo(cx - sp, cy); ctx.moveTo(cx + sp, cy); ctx.lineTo(cx + sp + 9, cy); ctx.moveTo(cx, cy - sp - 9); ctx.lineTo(cx, cy - sp); ctx.moveTo(cx, cy + sp); ctx.lineTo(cx, cy + sp + 9); ctx.stroke(); }
     if (fx.hitMarker > 0) { ctx.strokeStyle = '#ff5470'; ctx.lineWidth = 3.5; ctx.beginPath(); for (const [a, b] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { ctx.moveTo(cx + a * 8, cy + b * 8); ctx.lineTo(cx + a * 17, cy + b * 17); } ctx.stroke(); }
@@ -1307,7 +1308,7 @@ const UI = (() => {
     document.addEventListener('mousemove', e => { // la souris fait pivoter le personnage et la caméra
       if (state !== 'play' || !player.alive) return;
       const dx = clamp(e.movementX || 0, -250, 250), dy = clamp(e.movementY || 0, -250, 250), s = .0024 * Settings.data.sens;
-      player.ang += dx * s; tuto.turned += Math.abs(dx * s); Render.look(dx, dy * s * .6);
+      player.ang += dx * s; tuto.turned += Math.abs(dx * s); Render.look(dx, dy * s * .35);
     });
     glc.addEventListener('mousedown', e => { if (state !== 'play') return; if (!locked) lock(); if (e.button === 0) api.mouseDown = true; });
     window.addEventListener('mouseup', e => { if (e.button === 0) api.mouseDown = false; });
